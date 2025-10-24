@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>书签管理</title>
+<style>
+  /* --- 基础和布局样式 --- */
+  body {
+    margin: 0;
+    font-family: "Segoe UI", sans-serif;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: #f0f2f5;
+  }
+  .app-container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+  .sidebar { width: 200px; background: #f7f7f7; border-right: 1px solid #ddd; padding: 15px; display:flex; flex-direction:column; }
+  .sidebar h2 { font-size:1rem; margin-bottom:10px; }
+  .main { flex:1; padding:20px; overflow-y:auto; display:flex; flex-direction:column; }
+  .bookmarks { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:15px; }
+
+  /* --- 全局动态效果 --- */
+  button, input, select, .category-item, .bookmark {
+    transition: all 0.2s ease-in-out;
+  }
+
+  /* --- 按钮的动态效果 --- */
+  button { cursor: pointer; }
+  button:hover { filter: brightness(1.15); transform: translateY(-2px); }
+  button:active { filter: brightness(0.9); transform: translateY(0); }
+
+  /* --- 分类管理的动态效果 --- */
+  .category-item { padding:6px 10px; border-radius:5px; margin-bottom:5px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; }
+  .category-item:not(.active):hover { background: #e0e0e0; transform: translateX(4px); }
+  .category-item.active { background:#1a73e8; color:white; box-shadow: 0 2px 8px rgba(26, 115, 232, 0.4); }
+  
+  .category-item button { border:none; color:white; border-radius:3px; padding:2px 5px; font-size:0.8rem; }
+  .category-item .edit-btn { background:#1a73e8; }
+  .category-item .delete-btn { background:#e53935; margin-left: 5px; }
+
+  .category-item input.edit-input {
+    flex-grow: 1;
+    padding: 4px;
+    border: 1px solid #1a73e8;
+    border-radius: 3px;
+    outline: none;
+    font-size: 0.9rem;
+  }
+  .hidden { display: none !important; }
+
+  .category-buttons { display: flex; }
+
+  .category-item.editing {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+  .category-item.editing .category-name {
+    display: none;
+  }
+  .category-item.editing .edit-input {
+    display: block;
+    flex-basis: 100%;
+    margin-bottom: 6px;
+  }
+  .category-item.editing .category-buttons {
+    flex-basis: 100%;
+    justify-content: flex-end;
+  }
+
+  /* --- 表单和输入框的动态效果 --- */
+  .form { display:flex; gap:10px; margin-bottom:20px; flex-wrap:wrap; }
+  .form input, .form select { padding:8px; border-radius:5px; border:1px solid #ccc; flex:1; min-width:150px; }
+  .form input:focus, .form select:focus { outline: none; border-color: #1a73e8; box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.2); }
+  .form button { padding:8px 15px; border:none; border-radius:5px; background:#1a73e8; color:white; }
+
+  /* --- 书签卡片的动态效果 --- */
+  .bookmark { background:#fff; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.1); padding:10px; display:flex; flex-direction:column; align-items:center; text-align:center; cursor:pointer; }
+  .bookmark:hover { transform:translateY(-5px) scale(1.03); box-shadow:0 6px 16px rgba(0,0,0,0.15); }
+  .bookmark:active { transform: translateY(-2px) scale(1.01); box-shadow: 0 3px 8px rgba(0,0,0,0.12); }
+  .bookmark img { width:48px; height:48px; margin-bottom:8px; }
+  .bookmark span { font-size:0.9rem; word-break:break-word; }
+  .bookmark-actions { margin-top:5px; display:flex; gap:5px; opacity: 0; transition: opacity 0.2s; }
+  .bookmark:hover .bookmark-actions { opacity: 1; }
+  .bookmark-actions button { flex:1; padding:2px 5px; font-size:0.8rem; border-radius:3px; border:none; }
+  /* 书签卡片内的按钮样式 */
+  .bookmark-actions .edit-btn { background:#1a73e8; color:white; }
+  .bookmark-actions .delete-btn { background:#e53935; color:white; }
+
+  /* --- 密码覆盖层 --- */
+  #passwordOverlay { position:fixed; top:0; left:0; width:100%; height:100%; background:#f7f7f7; display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:1000; padding-bottom: 40vh; box-sizing: border-box; }
+  #passwordOverlay input { padding:10px; border-radius:5px; border:1px solid #ccc; margin-bottom:10px; width:200px; }
+  #passwordOverlay input:focus { outline: none; border-color: #1a73e8; box-shadow: 0 0 0 3px rgba(26, 115, 232, 0.2); }
+  #passwordOverlay button { padding:8px 15px; border:none; border-radius:5px; background:#1a73e8; color:white; }
+  #passwordOverlay p { color:red; display:none; }
+
+  /* --- 页脚样式 --- */
+  footer {
+    flex-shrink: 0;
+    padding: 15px;
+    text-align: center;
+    background: #f7f7f7;
+    border-top: 1px solid #ddd;
+    color: #777;
+    font-size: 0.9rem;
+  }
+  footer p { margin: 0; }
+</style>
+</head>
+<body>
+
+<div id="passwordOverlay">
+  <h2>请输入管理密码</h2>
+  <input type="password" id="adminPasswordInput" placeholder="密码">
+  <button id="passwordSubmitBtn">进入管理</button>
+  <p id="passwordError">密码错误</p>
+</div>
+
+<div class="app-container">
+  <div class="sidebar">
+    <h2>分类管理</h2>
+    <input type="text" id="newCategory" placeholder="新增分类" style="padding:5px; border-radius:4px; border:1px solid #ccc; margin-bottom:10px;">
+    <button id="addCategoryBtn" style="padding:5px; border:none; background:#1a73e8; color:white; border-radius:4px; cursor:pointer;">添加分类</button>
+    <div id="categoryList" style="margin-top:10px; flex:1; overflow-y:auto;"></div>
+  </div>
+
+  <div class="main">
+    <div class="form">
+      <input type="text" id="bookmarkName" placeholder="书签名称">
+      <input type="text" id="bookmarkUrl" placeholder="书签URL">
+      <input type="text" id="bookmarkIcon" placeholder="图标URL (可选)">
+      <select id="bookmarkCategory"></select>
+      <button id="saveBtn">保存书签</button>
+    </div>
+    <div class="bookmarks" id="bookmarkList"></div>
+  </div>
+</div>
+
+<footer>
+  <p>&copy; <span id="currentYear"></span> 书签管理器. 由 导航站 强力驱动.</p>
+</footer>
+
+<script>
+let bookmarksData = {};
+let verifiedPassword = null;
+let editingIndex = null, editingCategory = null;
+let currentCategory = "";
+let passwordTimeout = null;
+const PASSWORD_DURATION = 10 * 60 * 1000;
+
+const nameInput = document.getElementById("bookmarkName");
+const urlInput = document.getElementById("bookmarkUrl");
+const iconInput = document.getElementById("bookmarkIcon");
+const categorySelect = document.getElementById("bookmarkCategory");
+const saveBtn = document.getElementById("saveBtn");
+const listContainer = document.getElementById("bookmarkList");
+const categoryListContainer = document.getElementById("categoryList");
+const newCategoryInput = document.getElementById("newCategory");
+const addCategoryBtn = document.getElementById("addCategoryBtn");
+const overlay = document.getElementById("passwordOverlay");
+const passwordInput = document.getElementById("adminPasswordInput");
+const passwordBtn = document.getElementById("passwordSubmitBtn");
+const passwordError = document.getElementById("passwordError");
+
+async function loadInitialData() {
+  try {
+    const response = await fetch(`/api/bookmarks?t=${new Date().getTime()}`);
+    if (!response.ok) throw new Error('Network response was not ok');
+    bookmarksData = await response.json();
+    if (Object.keys(bookmarksData).length > 0 && !bookmarksData[currentCategory]) {
+        currentCategory = Object.keys(bookmarksData)[0];
+    }
+    renderCategoryOptions();
+    renderCategoryList();
+    renderBookmarkList();
+  } catch (error) {
+    console.error('Failed to load bookmarks:', error);
+    alert('无法从服务器加载书签数据。');
+  }
+}
+
+async function saveDataToServer() {
+  if (!verifiedPassword) {
+    alert("无法保存数据：密码未验证。请刷新后重新登录。");
+    return;
+  }
+  try {
+    const response = await fetch('/api/bookmarks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        password: verifiedPassword,
+        bookmarksData: bookmarksData,
+      }),
+    });
+    const result = await response.json();
+    if (!result.success) throw new Error(result.message || 'Failed to save.');
+    console.log('Bookmarks saved to server successfully.');
+  } catch (error) {
+    console.error('Error saving data to server:', error);
+    alert('保存书签到服务器失败！');
+  }
+}
+
+async function checkPassword() {
+  const password = passwordInput.value;
+  if (!password) return;
+  try {
+    const res = await fetch("/check-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password })
+    });
+    const data = await res.json();
+    if (data.success) {
+      sessionStorage.setItem('verifiedPassword', password);
+      sessionStorage.setItem('verifiedTime', Date.now());
+      handleSuccessfulLogin(password);
+    } else {
+      passwordError.style.display = "block";
+      passwordInput.value = "";
+    }
+  } catch (err) {
+    console.error(err);
+    passwordError.style.display = "block";
+  }
+}
+
+function handleSuccessfulLogin(password) {
+    verifiedPassword = password;
+    overlay.style.display = "none";
+    passwordInput.value = "";
+    passwordError.style.display = "none";
+    startPasswordTimer();
+    loadInitialData();
+}
+
+function checkSessionLogin() {
+    const storedPassword = sessionStorage.getItem('verifiedPassword');
+    const storedTime = sessionStorage.getItem('verifiedTime');
+    if (storedPassword && storedTime) {
+        const elapsedTime = Date.now() - parseInt(storedTime, 10);
+        if (elapsedTime < PASSWORD_DURATION) {
+            handleSuccessfulLogin(storedPassword);
+        } else {
+            sessionStorage.clear();
+        }
+    }
+}
+
+function startPasswordTimer() {
+    if (passwordTimeout) clearTimeout(passwordTimeout);
+    passwordTimeout = setTimeout(() => {
+        sessionStorage.clear();
+        verifiedPassword = null;
+        overlay.style.display = "flex";
+        alert("登录已超时，请重新输入密码。");
+    }, PASSWORD_DURATION);
+}
+
+passwordBtn.onclick = checkPassword;
+passwordInput.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    checkPassword();
+  }
+});
+
+function renderCategoryOptions(selectedCategory = null) {
+  categorySelect.innerHTML = "";
+  const categories = Object.keys(bookmarksData);
+  if (categories.length === 0) {
+      const option = document.createElement("option");
+      option.textContent = "请先添加一个分类";
+      option.disabled = true;
+      categorySelect.appendChild(option);
+      return;
+  }
+  categories.forEach(cat => {
+    const option = document.createElement("option");
+    option.value = cat;
+    option.textContent = cat;
+    if (cat === selectedCategory || cat === currentCategory) option.selected = true;
+    categorySelect.appendChild(option);
+  });
+}
+
+function renderCategoryList() {
+  categoryListContainer.innerHTML = "";
+  Object.keys(bookmarksData).forEach(cat => {
+    const div = document.createElement("div");
+    div.className = "category-item" + (cat === currentCategory ? " active" : "");
+    
+    div.innerHTML = `
+        <span class="category-name">${cat}</span>
+        <input type="text" class="edit-input hidden" value="${cat}">
+        <div class="category-buttons">
+            <button class="edit-btn">编辑</button>
+            <button class="delete-btn">删除</button>
+        </div>
+    `;
+
+    const nameSpan = div.querySelector('.category-name');
+    const editInput = div.querySelector('.edit-input');
+    const buttonsContainer = div.querySelector('.category-buttons');
+
+    div.onclick = (e) => {
+      // 确保点击的不是按钮或输入框
+      if (!e.target.closest('button') && !e.target.closest('input')) {
+        currentCategory = cat;
+        renderCategoryList();
+        renderBookmarkList();
+        renderCategoryOptions();
+      }
+    };
+    
+    div.querySelector('.delete-btn').onclick = (e) => {
+      e.stopPropagation();
+      deleteCategory(cat);
+    };
+
+    div.querySelector('.edit-btn').onclick = (e) => {
+        e.stopPropagation();
+        if (div.classList.contains('editing')) return;
+        div.classList.add('editing');
+        nameSpan.classList.add('hidden');
+        editInput.classList.remove('hidden');
+        editInput.focus();
+        editInput.select();
+    };
+    
+    const handleUpdate = () => {
+        if (!div.classList.contains('editing')) return;
+        const newCatName = editInput.value.trim();
+        div.classList.remove('editing');
+        if (newCatName && newCatName !== cat) {
+            updateCategoryName(cat, newCatName);
+        } else {
+             renderCategoryList();
+        }
+    };
+
+    editInput.onblur = handleUpdate;
+    editInput.onkeydown = (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            handleUpdate();
+        } else if (e.key === 'Escape') {
+            editInput.value = cat;
+            div.classList.remove('editing');
+            renderCategoryList();
+        }
+    };
+
+    categoryListContainer.appendChild(div);
+  });
+}
+
+
+function addCategory() {
+  const newCat = newCategoryInput.value.trim();
+  if (!newCat) return alert("分类名称不能为空");
+  if (bookmarksData[newCat]) return alert("分类已存在");
+  bookmarksData[newCat] = [];
+  if (!currentCategory) currentCategory = newCat;
+  saveDataToServer();
+  newCategoryInput.value = "";
+  renderCategoryOptions();
+  renderCategoryList();
+}
+
+function deleteCategory(cat) {
+  if (!confirm(`确定删除分类 "${cat}" 及其中所有书签吗？`)) return;
+  delete bookmarksData[cat];
+  if (currentCategory === cat) {
+      currentCategory = Object.keys(bookmarksData)[0] || "";
+  }
+  saveDataToServer();
+  renderCategoryOptions();
+  renderCategoryList();
+  renderBookmarkList();
+}
+
+function updateCategoryName(oldName, newName) {
+  if (!newName) return alert("分类名称不能为空！");
+  if (bookmarksData[newName]) return alert("该分类名称已存在！");
+
+  const bookmarksToMove = bookmarksData[oldName];
+  delete bookmarksData[oldName];
+  bookmarksData[newName] = bookmarksToMove;
+
+  if (currentCategory === oldName) {
+    currentCategory = newName;
+  }
+
+  saveDataToServer();
+  renderCategoryOptions(currentCategory);
+  renderCategoryList();
+}
+
+
+addCategoryBtn.onclick = addCategory;
+
+function renderBookmarkList() {
+  listContainer.innerHTML = "";
+  (bookmarksData[currentCategory] || []).forEach((item, idx) => {
+    const div = document.createElement("div");
+    div.className = "bookmark";
+    div.innerHTML = `
+      <img src="${item.icon || `https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${item.url}&size=128`}" onerror="this.src='https://www.google.com/s2/favicons?domain=google.com'"/>
+      <span>${item.name}</span>
+      <div class="bookmark-actions">
+        <button class="edit-btn">编辑</button>
+        <button class="delete-btn">删除</button>
+      </div>
+    `;
+    div.onclick = (e) => {
+      if (!e.target.closest("button")) window.open(item.url, "_blank");
+    };
+    div.querySelector('.bookmark-actions .edit-btn').onclick = (e) => {
+        e.stopPropagation();
+        editBookmark(idx);
+    };
+    div.querySelector('.bookmark-actions .delete-btn').onclick = (e) => {
+        e.stopPropagation();
+        deleteBookmark(idx);
+    };
+    listContainer.appendChild(div);
+  });
+}
+
+function editBookmark(idx) {
+  const item = bookmarksData[currentCategory][idx];
+  nameInput.value = item.name;
+  urlInput.value = item.url;
+  iconInput.value = item.icon || "";
+  editingIndex = idx;
+  editingCategory = currentCategory;
+  renderCategoryOptions(currentCategory);
+  nameInput.focus();
+}
+
+function deleteBookmark(idx) {
+  if (!confirm(`确定要删除书签 "${bookmarksData[currentCategory][idx].name}" 吗？`)) return;
+  bookmarksData[currentCategory].splice(idx, 1);
+  saveDataToServer();
+  renderBookmarkList();
+}
+
+saveBtn.onclick = () => {
+  const name = nameInput.value.trim();
+  let url = urlInput.value.trim();
+  const icon = iconInput.value.trim();
+  const category = categorySelect.value;
+
+  if (!category) return alert("请先添加一个分类再保存书签！");
+  if (!name || !url) return alert("名称和URL不能为空");
+
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    url = 'https://' + url;
+  }
+
+  const bookmark = { name, url, icon };
+
+  if (editingIndex !== null && editingCategory !== null) {
+    if (editingCategory !== category) {
+        if (bookmarksData[editingCategory]) {
+            bookmarksData[editingCategory].splice(editingIndex, 1);
+        }
+        if (!bookmarksData[category]) bookmarksData[category] = [];
+        bookmarksData[category].push(bookmark);
+    } else {
+        bookmarksData[category][editingIndex] = bookmark;
+    }
+  } else {
+    if (!bookmarksData[category]) bookmarksData[category] = [];
+    bookmarksData[category].push(bookmark);
+  }
+
+  saveDataToServer();
+
+  editingIndex = null; 
+  editingCategory = null;
+  nameInput.value = ""; 
+  urlInput.value = ""; 
+  iconInput.value = "";
+  
+  currentCategory = category;
+  renderCategoryList();
+  renderBookmarkList();
+  renderCategoryOptions();
+};
+
+// ===============================================
+// =====   这是新增的自动填充图标URL功能的代码   =====
+// ===============================================
+urlInput.addEventListener('blur', () => {
+  const urlValue = urlInput.value.trim();
+  
+  // 只有当URL输入框有内容，且图标URL输入框为空时，才自动填充
+  if (urlValue && !iconInput.value.trim()) {
+    let fullUrl = urlValue;
+    if (!fullUrl.startsWith('http://') && !fullUrl.startsWith('https://')) {
+      fullUrl = 'https://' + fullUrl;
+    }
+    
+    // 使用Google的favicon服务来构建图标URL
+    const faviconUrl = `https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${fullUrl}&size=128`;
+    
+    // 自动填充到图标URL输入框
+    iconInput.value = faviconUrl;
+  }
+});
+// ===============================================
+// ===========        新增代码结束         ===========
+// ===============================================
+
+
+checkSessionLogin();
+
+document.getElementById('currentYear').textContent = new Date().getFullYear();
+</script>
+
+</body>
+</html>
