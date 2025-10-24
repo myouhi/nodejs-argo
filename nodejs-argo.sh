@@ -8,7 +8,7 @@ LOG_FILE="/var/log/${APP_NAME}_install.log"
 CONFIG_FILE_ENV="$INSTALL_DIR/config.env"
 CONFIG_FILE_SUB="$INSTALL_DIR/tmp/sub.txt"
 SERVICE_FILE="/etc/systemd/system/$APP_NAME.service"
-ZIP_URL="https://github.com/myouhi/nodejs-argo/releases/download/nodejs-argo.sh/nodejs-argo.zip"
+ZIP_URL="https://github.com/myouhi/nodejs-argo/releases/download/nodejs-argo/nodejs-argo.zip"
 ZIP_FILE="/tmp/$APP_NAME.zip"
 
 # --- 快捷命令 ---
