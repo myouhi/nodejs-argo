@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#ffffff">
+    <title>导航页</title>
+
+    <script>
+        function applyTheme(theme) { 
+            document.documentElement.setAttribute('data-theme', theme); 
+            
+            const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+            if (themeColorMeta) {
+                themeColorMeta.setAttribute('content', theme === 'dark' ? '#121212' : '#ffffff');
+            }
+        }
+
+        (function() {
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            let initialTheme = prefersDark ? 'dark' : 'light'; 
+            applyTheme(initialTheme);
+        })();
+    </script>
+    
+    <style>
+        :root {
+          --bg-color: #ffffff;
+          --card-bg-color: #fff;
+          --card-bg-color-rgb: 255, 255, 255; 
+          --text-color: #333;
+          --title-color: #000;
+          --shadow-color: rgba(0,0,0,0.1); 
+          --hover-shadow-color: rgba(0,0,0,0.2);
+          --primary-color: #1a73e8;
+          --category-loading-color: #999;
+          --site-background: var(--bg-color); 
+          --theme-color: #ffffff;
+          transition: background-color 0.3s, color 0.3s;
+        }
+
+        [data-theme='dark'] {
+          --bg-color: #121212;
+          --card-bg-color: #1e1e1e;
+          --card-bg-color-rgb: 30, 30, 30; 
+          --text-color: #e0e0e0;
+          --title-color: #e0e0e0;
+          --shadow-color: rgba(255,255,255,0.08); 
+          --hover-shadow-color: rgba(255,255,255,0.15);
+          --primary-color: #8ab4f8;
+          --category-loading-color: #666;
+          --site-background: var(--bg-color); 
+          --theme-color: #121212; 
+        }
+
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        body {
+          margin: 0;
+          font-family: "Segoe UI", sans-serif;
+          background: var(--site-background);
+          background-size: cover;
+          background-position: center;
+          background-attachment: fixed;
+          color: var(--text-color);
+          display: flex;
+          flex-direction: column;
+          min-height: 100vh;
+          position: relative; 
+          
+          padding-top: constant(safe-area-inset-top);
+          padding-top: env(safe-area-inset-top);
+          padding-bottom: 0; 
+        }
+        
+        .user-avatar {
+            position: fixed; 
+            top: 25px; 
+            right: 25px; 
+            width: 40px;
+            height: 40px;
+            border-radius: 50%; 
+            cursor: pointer;
+            background: var(--card-bg-color);
+            box-shadow: 0 2px 8px var(--shadow-color);
+            transition: transform 0.2s, box-shadow 0.2s;
+            overflow: hidden; 
+            z-index: 100;
+        }
+        
+        @media (max-width: 600px) {
+            .user-avatar {
+                top: calc(15px + env(safe-area-inset-top)); 
+                right: 15px;
+                width: 35px;
+                height: 35px;
+            }
+        }
+        .user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; 
+            pointer-events: none; 
+        }
+        .user-avatar:hover {
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 4px 12px var(--hover-shadow-color);
+        }
+        
+        .main-content {
+          flex-grow: 1;
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+        
+        .category-bar {
+          padding: 0; 
+          box-shadow: none;
+          background: transparent;
+          margin: 15px auto; 
+          width: fit-content; 
+          max-width: 95%; 
+        }
+        
+        .category-list-root {
+            display: flex;
+            list-style: none;
+            padding: 8px 10px; 
+            margin: 0;
+            background: var(--card-bg-color); 
+            border-radius: 12px;
+            box-shadow: 0 2px 8px var(--shadow-color); 
+        }
+        
+        body[data-wallpaper="true"] .category-list-root {
+            background: rgba(var(--card-bg-color-rgb), 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .category-item {
+            position: relative;
+            padding: 0 6px; 
+            cursor: pointer;
+            transition: background-color 0.2s;
+            width: fit-content;
+            
+            padding-bottom: 5px; 
+            margin-bottom: -5px; 
+        }
+        
+        .category-link {
+            display: block;
+            padding: 6px 8px; 
+            border-radius: 20px; 
+            font-weight: 500;
+            text-align: center; 
+            
+            color: var(--text-color); 
+            
+            text-decoration: none;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+        
+        .category-item.has-children .category-link {
+            color: var(--primary-color);
+        }
+
+        .category-item:not(.active) .category-link:hover {
+          color: var(--primary-color); 
+          background-color: var(--shadow-color);
+        }
+        
+        .category-item.active .category-link {
+          background: var(--primary-color);
+          color: var(--card-bg-color);
+        }
+        [data-theme='dark'] .category-item.active .category-link { 
+            color: #121212; 
+        }
+        
+        .category-item.has-children .category-link::after {
+            content: '';
+            margin-left: 0; 
+        }
+        
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 100%; 
+            
+            left: 50%; 
+            transform: translateX(-50%); 
+            
+            min-width: unset; 
+            width: fit-content; 
+            
+            list-style: none;
+            background: var(--card-bg-color); 
+            
+            padding: 8px; 
+            margin-top: 0;
+            
+            border-radius: 8px; 
+            box-shadow: 0 4px 12px var(--hover-shadow-color); 
+            
+            z-index: 20;
+        }
+        
+        [data-theme='dark'] .dropdown-menu {
+            background: var(--card-bg-color);
+        }
+        
+        .dropdown-menu .category-item {
+            width: 100%;
+            padding: 0;
+            margin-bottom: 4px;
+        }
+        
+        .dropdown-menu .category-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .dropdown-menu .category-link {
+            display: block; 
+            line-height: 1.5;
+            
+            padding: 6px 12px; 
+            border-radius: 20px; 
+            text-align: left;
+            
+            color: var(--text-color); 
+            background: transparent; 
+            
+            border-bottom: none;
+        }
+        
+        .category-item.active .dropdown-menu .category-item:not(.active) > .category-link {
+            color: var(--text-color); 
+            background: transparent;
+        }
+        
+        .category-item .dropdown-menu .category-item > .category-link:hover,
+        .category-item.active .dropdown-menu .category-item > .category-link:hover {
+            background-color: var(--shadow-color); 
+            color: var(--text-color); 
+        }
+        
+        .dropdown-menu .category-item.active > .category-link {
+            background: var(--primary-color);
+            color: var(--card-bg-color);
+        }
+        [data-theme='dark'] .dropdown-menu .category-item.active > .category-link {
+            color: #121212; 
+        }
+        
+        .category-item:hover > .dropdown-menu {
+            display: block;
+        }
+        
+        @media (max-width: 600px) {
+            .category-list-root {
+                flex-wrap: nowrap;
+                overflow-x: auto; 
+                justify-content: flex-start; 
+                -webkit-overflow-scrolling: touch; 
+                width: 92%; 
+                max-width: none; 
+            }
+            .category-item {
+                flex-shrink: 0;
+            }
+            .category-item:hover > .dropdown-menu {
+                display: none;
+            }
+        }
+        .header-container { 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 20px; 
+            margin-top: 80px; 
+        }
+        
+        .title { margin: 0; font-size: 2.5rem; font-weight: 600; color: var(--title-color); }
+        .title img { 
+          height: 80px; 
+          width: auto; 
+          vertical-align: middle; 
+        }
+
+        @media (max-width: 600px) {
+            .header-container {
+                margin-top: calc(40px + env(safe-area-inset-top)); 
+                gap: 10px;
+            }
+            .title {
+                font-size: 1.8rem; 
+            }
+            .title img {
+                height: 65px; 
+            }
+        }
+
+        .search-box {
+          margin: 15px 0 10px 0; 
+          display: flex; align-items: center;
+          background: var(--card-bg-color);
+          border-radius: 50px; 
+          box-shadow: none; 
+          padding: 8px 20px;
+          width: 500px;
+          max-width: 90%;
+          transition: transform 0.2s, box-shadow 0.2s;
+          border: 1px solid var(--shadow-color); 
+        }
+        .search-box:focus-within { 
+          transform: none; 
+          box-shadow: none; 
+          border: 1px solid var(--primary-color);
+        }
+
+        .search-box input {
+          border: none; outline: none; flex: 1;
+          font-size: 1.1rem;
+          padding: 8px; background: transparent; color: var(--text-color);
+        }
+
+        .bookmarks {
+          margin-top: 5px; 
+          margin-bottom: 30px; 
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); 
+          gap: 15px; 
+          width: 80%; max-width: 900px;
+        }
+
+        .bookmark {
+          background: var(--card-bg-color);
+          border-radius: 12px;
+          box-shadow: 0 0 0 1px var(--shadow-color);
+          padding: 10px; 
+          cursor: pointer;
+          transition: transform 0.2s, box-shadow 0.2s, background-color 0.3s;
+          display: flex; flex-direction: column; align-items: center; text-align: center;
+          opacity: 0;
+          animation: fadeInUp 0.5s ease-out forwards;
+        }
+
+        body[data-wallpaper="true"] .bookmark {
+            background: rgba(var(--card-bg-color-rgb), 0.85); 
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        
+        .bookmark:hover { transform: translateY(-4px) scale(1.05); box-shadow: 0 6px 16px var(--hover-shadow-color); }
+        [data-theme='dark'] .bookmark:hover { box-shadow: 0 0 0 1px var(--hover-shadow-color), 0 6px 20px rgba(0,0,0,0.5); }
+        .bookmark img {
+          width: 40px; 
+          height: 40px; 
+          margin-bottom: 8px; 
+          display: block;
+          background-color: transparent; border-radius: 8px;
+        }
+        [data-theme='dark'] .bookmark img { background-color: rgba(255, 255, 255, 0.1); }
+        .bookmark span { 
+          font-size: 0.85rem; 
+          word-break: break-word; 
+          color: var(--text-color); 
+          transition: color 0.2s; 
+        }
+        .bookmark:hover span { color: var(--primary-color); }
+        
+        @media (max-width: 600px) {
+          .search-box {
+            width: 80%;
+            height: 50px;
+            padding: 6px 14px;
+            border-radius: 26px;
+          }
+          .search-box input {
+            font-size: 1.1rem;
+            padding: 8px 6px;
+            line-height: 1.3;
+          }
+
+          .bookmarks {
+            grid-template-columns: repeat(3, 1fr);
+            width: 92%;
+            gap: 10px; 
+            margin-bottom: 50px; 
+          }
+          .bookmark { 
+            padding: 8px; 
+          }
+          .bookmark img { 
+            width: 32px; 
+            height: 32px; 
+            margin-bottom: 5px; 
+          }
+          .bookmark span {
+            font-size: 0.8rem; 
+          }
+        }
+    </style>
+</head>
+<body>
+
+  <div class="user-avatar" id="userAvatar">
+    <img id="avatarImg" src="https://i.ibb.co/601FfVw/avatar.png" alt="User Avatar"> 
+  </div>
+
+  <main class="main-content">
+    
+    <div class="header-container">
+      <div class="title">
+        <img id="siteLogo" src="https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png" alt="Logo">
+      </div>
+    </div>
+    
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="使用 Google 搜索..." />
+    </div>
+    
+    <div class="category-bar" id="categoryBar">
+      </div>
+    
+    <div id="bookmarks" class="bookmarks"></div>
+  </main>
+
+  <script>
+    function toggleFullScreen() {
+      const element = document.documentElement; 
+      
+      if (document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement) {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.mozCancelFullScreen) { 
+          document.mozCancelFullScreen();
+        } else if (document.webkitExitFullscreen) { 
+          document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) { 
+          document.msExitFullscreen();
+        }
+      } else {
+        if (element.requestFullscreen) {
+          element.requestFullscreen();
+        } else if (element.mozRequestFullScreen) {
+          element.mozRequestFullScreen();
+        } else if (element.webkitRequestFullscreen) {
+          element.webkitRequestFullscreen();
+        } else if (element.msRequestFullscreen) {
+          element.msRequestFullscreen();
+        }
+      }
+    }
+    
+    let bookmarksData = {};
+    let currentCategoryPath = ""; 
+    
+    const bookmarksContainer = document.getElementById("bookmarks");
+    const categoryBar = document.getElementById("categoryBar");
+    const searchInput = document.getElementById("searchInput");
+    const logoImg = document.getElementById("siteLogo");
+    const userAvatar = document.getElementById("userAvatar");
+    const avatarImg = document.getElementById("avatarImg");
+    const htmlEl = document.documentElement;
+
+    const TIMEOUT_MS = 5000;
+    async function fetchWithTimeout(resource, options = {}) {
+        const { timeout = TIMEOUT_MS } = options;
+        
+        const controller = new AbortController();
+        const id = setTimeout(() => controller.abort(), timeout);
+        
+        try {
+            const response = await fetch(resource, {
+                ...options,
+                signal: controller.signal  
+            });
+            clearTimeout(id);
+            return response;
+        } catch (error) {
+            clearTimeout(id);
+            if (error.name === 'AbortError') {
+                throw new Error(`请求超时: ${resource}`);
+            }
+            throw error;
+        }
+    }
+    
+    function getFlatCategories(list, prefix = "") {
+      let flatList = [];
+      list.forEach(item => {
+        const fullName = prefix + item.name;
+        flatList.push(fullName); 
+        if (item.children && item.children.length > 0) {
+          flatList = flatList.concat(getFlatCategories(item.children, fullName + " / "));
+        }
+      });
+      return flatList;
+    }
+    
+    function findCategory(path, list) {
+        if (!path || !list) return null;
+        const parts = path.split(' / ');
+        let currentLevel = list;
+        let foundCategory = null;
+
+        for (const name of parts) {
+            foundCategory = currentLevel.find(item => item.name === name);
+            if (!foundCategory) return null;
+            currentLevel = foundCategory.children || [];
+        }
+        return foundCategory;
+    }
+
+    function updateCategoryActiveState(newPath) {
+        document.querySelectorAll('.category-item.active').forEach(item => {
+            item.classList.remove('active');
+        });
+
+        currentCategoryPath = newPath;
+        
+        const pathParts = newPath.split(' / ');
+        
+        let currentParent = categoryBar.querySelector('.category-list-root');
+        
+        for (const part of pathParts) {
+            if (!currentParent) break;
+            
+            let targetLi = null;
+            
+            const listItems = currentParent.querySelectorAll(':scope > .category-item');
+            
+            for (const li of listItems) {
+                const link = li.querySelector(':scope > .category-link');
+                if (link && link.textContent === part) {
+                    targetLi = li;
+                    break;
+                }
+            }
+
+            if (targetLi) {
+                targetLi.classList.add('active');
+                currentParent = targetLi.querySelector('.dropdown-menu');
+            } else {
+                break;
+            }
+        }
+    }
+
+
+    function renderCategoryListRecursive(categories, parentElement, prefix = "") {
+        const isRoot = prefix === "";
+        const listEl = document.createElement(isRoot ? "ul" : "ul");
+        listEl.className = isRoot ? "category-list-root" : "dropdown-menu";
+
+        categories.forEach(item => {
+            const fullPath = prefix + item.name;
+            const catName = item.name;
+            const hasChildren = item.children && item.children.length > 0;
+
+            const li = document.createElement("li");
+            li.className = "category-item";
+            
+            if (fullPath === currentCategoryPath) li.classList.add('active');
+            if (hasChildren) li.classList.add('has-children');
+
+            const link = document.createElement("a");
+            link.className = "category-link";
+            link.href = "javascript:void(0)";
+            link.textContent = catName;
+            link.dataset.path = fullPath;
+
+            link.onclick = (event) => {
+                event.preventDefault();
+                
+                updateCategoryActiveState(fullPath);
+                
+                renderBookmarks(bookmarksData.categories);
+            };
+
+            li.appendChild(link);
+            
+            if (hasChildren) {
+                renderCategoryListRecursive(item.children, li, fullPath + " / ");
+            }
+
+            listEl.appendChild(li);
+        });
+
+        parentElement.appendChild(listEl);
+    }
+    
+    function renderCategories(categoriesList) {
+        categoryBar.innerHTML = "";
+        
+        if (!categoriesList || categoriesList.length === 0) {
+             categoryBar.innerHTML = `<div class="category loading">暂无分类</div>`;
+             return;
+        }
+
+        renderCategoryListRecursive(categoriesList, categoryBar);
+    }
+
+
+    async function loadBookmarks() {
+      try {
+        const response = await fetchWithTimeout(`/api/bookmarks?t=${new Date().getTime()}`); 
+        if (!response.ok) throw new Error('无法获取书签数据');
+        
+        let rawData = await response.text();
+        if (!rawData) {
+            console.warn('API 返回空数据。');
+            bookmarksData = { categories: [] };
+        } else {
+             const parsedData = JSON.parse(rawData);
+             bookmarksData = parsedData.bookmarksData || parsedData || { categories: [] };
+        }
+
+        let isWallpaperActive = false; 
+
+        if (bookmarksData && typeof bookmarksData.wallpaper === "string" && bookmarksData.wallpaper.trim()) {
+            let wallpaperUrl = bookmarksData.wallpaper.trim();
+            
+            if (wallpaperUrl === 'bing') {
+                const publicBingApiUrl = `https://bing.img.run/rand_uhd.php`; 
+                let bingSuccess = false;
+
+                try {
+                    const bingRes = await fetchWithTimeout(publicBingApiUrl, { timeout: 3000 });
+                    
+                    if (bingRes.ok) {
+                        const imageUrl = (await bingRes.text()).trim();
+                        if (imageUrl.startsWith('http')) {
+                            document.body.style.setProperty('--site-background', `url("${imageUrl}")`);
+                            isWallpaperActive = true;
+                            bingSuccess = true;
+                        } else {
+                            throw new Error("公共API返回的不是有效URL");
+                        }
+                    } else {
+                         throw new Error("公共API请求失败");
+                    }
+                } catch (e) {
+                     console.warn("无法通过公共API获取 Bing 壁纸，尝试原版API...", e);
+                     
+                     const originalBingApiUrl = `https://www.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1&mkt=en-US`;
+                     try {
+                         const bingRes = await fetchWithTimeout(originalBingApiUrl, { timeout: 3000 });
+                         const bingData = await bingRes.json();
+                         
+                         if (bingData.images && bingData.images.length > 0) {
+                             const imageUrl = "https://www.bing.com" + bingData.images[0].url;
+                             document.body.style.setProperty('--site-background', `url("${imageUrl}")`);
+                             isWallpaperActive = true; 
+                             bingSuccess = true;
+                         }
+                     } catch(e2) {
+                         console.error("原版Bing API也失败或超时:", e2);
+                     }
+                }
+                
+                if (!bingSuccess) {
+                    document.body.style.setProperty('--site-background', 'var(--bg-color)');
+                }
+            } else {
+                document.body.style.setProperty('--site-background', `url("${wallpaperUrl}")`);
+                isWallpaperActive = true; 
+            }
+        } else {
+            document.body.style.setProperty('--site-background', 'var(--bg-color)');
+        }
+        
+        if (isWallpaperActive) {
+            document.body.setAttribute('data-wallpaper', 'true');
+        } else {
+            document.body.removeAttribute('data-wallpaper');
+        }
+
+        if (bookmarksData && typeof bookmarksData.logo === "string" && bookmarksData.logo.trim()) {
+          logoImg.src = bookmarksData.logo.trim();
+        } else {
+          logoImg.src = "https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png";
+        }
+        
+        if (bookmarksData && typeof bookmarksData.adminAvatar === "string" && bookmarksData.adminAvatar.trim()) {
+            avatarImg.src = bookmarksData.adminAvatar.trim();
+        } else {
+            avatarImg.src = "https://i.ibb.co/601FfVw/avatar.png";
+        }
+
+        const categoriesList = bookmarksData.categories || []; 
+
+        if (categoriesList.length === 0) {
+          categoryBar.innerHTML = `<div class="category loading">暂无分类</div>`;
+          bookmarksContainer.innerHTML = "<p style='text-align:center;'>暂无书签，请前往管理页面添加。</p>";
+          return;
+        }
+
+        if (categoriesList.length > 0) {
+            currentCategoryPath = categoriesList[0].name;
+        } else {
+            currentCategoryPath = "";
+        }
+        
+        renderCategories(categoriesList);
+        renderBookmarks(categoriesList);
+        
+      } catch (error) {
+        console.error('加载书签失败:', error);
+        categoryBar.innerHTML = `<div class="category loading">加载失败</div>`;
+        bookmarksContainer.innerHTML = "<p style='text-align:center;'>加载书签失败，请检查服务器连接或数据格式。</p>";
+      }
+    }
+
+    function renderBookmarks(categoriesList) {
+      bookmarksContainer.innerHTML = "";
+      
+      const currentCategoryObj = findCategory(currentCategoryPath, categoriesList);
+      const bookmarks = currentCategoryObj ? currentCategoryObj.bookmarks || [] : [];
+      
+      if (bookmarks.length === 0) {
+           bookmarksContainer.innerHTML = "<p style='text-align:center; color:#777; width:100%;'>当前分类暂无书签。</p>";
+           return;
+      }
+      
+      bookmarks.forEach((item, index) => {
+        const div = document.createElement("div");
+        div.className = "bookmark";
+        
+        const animationDelay = index * 0.025;
+        
+        let iconUrl = item.icon || `https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=${item.url}&size=128`;
+        
+        div.innerHTML = `
+          <img src="${iconUrl}" 
+               onerror="this.onerror=null;this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0OCIgaGVpZ2h0PSI0OCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiNjY2MiIHN0cm9rZS13aWR0aD0iMS41IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxjaXJjbGUgY3g9IjEyIiBjeT0iMTIiIHI9IjEwIj48L2NpcmNsZT48bGluZSB4MT0iNC45MyIgeTE9IjQuOTMiIHgyPSIxOS4wNyIgeTI9IjE5LjA3Ij48L2xpbmU+PC9zdmc+';" />
+          <span>${item.name}</span>
+        `;
+        
+        div.style.animationDelay = `${animationDelay}s`;
+        div.onclick = () => window.open(item.url, "_blank");
+        bookmarksContainer.appendChild(div);
+      });
+    }
+
+    function search() {
+      const query = searchInput.value.trim();
+      if (!query) return;
+
+      if (query.includes('.') && query.length > 5 && !query.includes(' ')) {
+        let finalUrl = query;
+        if (!query.startsWith("http://") && !query.startsWith("https://")) {
+            finalUrl = "https://" + query; 
+        }
+        window.open(finalUrl, "_blank");
+      } else {
+        window.open(`https://www.google.com/search?q=${encodeURIComponent(query)}`, "_blank");
+      }
+
+      searchInput.value = "";
+    }
+
+    searchInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        search();
+      }
+    });
+
+    userAvatar.onclick = () => {
+        window.location.href = './admin.html'; 
+    };
+    
+    document.addEventListener("DOMContentLoaded", () => {
+      
+      if (window.matchMedia && window.matchMedia("(max-width: 600px)").matches) {
+        
+        setTimeout(() => {
+             searchInput.focus();
+             try { searchInput.setSelectionRange(searchInput.value.length, searchInput.value.length); } catch (e) {}
+             
+        }, 50);
+      }
+      
+      loadBookmarks();
+    });
+  </script>
+</body>
+</html>

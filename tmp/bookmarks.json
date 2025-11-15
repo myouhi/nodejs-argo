@@ -1,0 +1,281 @@
+{
+  "categories": [
+    {
+      "name": "常用",
+      "bookmarks": [
+        {
+          "name": "Gmail",
+          "url": "https://mail.google.com",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://mail.google.com&size=128"
+        },
+        {
+          "name": "翻译",
+          "url": "https://translate.google.com/?sl=auto&tl=zh-CN&op=translate",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://translate.google.com/?sl=auto&tl=zh-CN&op=translate&size=128"
+        },
+        {
+          "name": "YouTube",
+          "url": "https://www.youtube.com/",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://www.youtube.com/&size=128"
+        },
+        {
+          "name": "Gemini",
+          "url": "https://gemini.google.com/app?hl=zh",
+          "icon": ""
+        },
+        {
+          "name": "GitHub",
+          "url": "https://github.com",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://github.com&size=128"
+        },
+        {
+          "name": "GitLab",
+          "url": "https://about.gitlab.com",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://about.gitlab.com&size=128"
+        },
+        {
+          "name": "Cloudflare",
+          "url": "https://dash.cloudflare.com",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://dash.cloudflare.com&size=128"
+        },
+        {
+          "name": "Ping0",
+          "url": "https://ping0.cc",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://ping0.cc&size=128"
+        },
+        {
+          "name": "ITDOG",
+          "url": "https://www.itdog.cn/tcping",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://www.itdog.cn/tcping&size=128"
+        },
+        {
+          "name": "ip.sb",
+          "url": "https://ip.sb",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://ip.sb&size=128"
+        },
+        {
+          "name": "Google Fiber",
+          "url": "https://fiber.google.com/speedtest/",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://fiber.google.com/speedtest/&size=128"
+        },
+        {
+          "name": "ChatGPT",
+          "url": "https://chat.openai.com",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://chat.openai.com&size=128"
+        },
+        {
+          "name": "NodeSeek",
+          "url": "https://www.nodeseek.com",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://www.nodeseek.com&size=128"
+        },
+        {
+          "name": "Linux do",
+          "url": "https://linux.do",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://linux.do&size=128"
+        },
+        {
+          "name": "FauxID",
+          "url": "https://fauxid.com",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://fauxid.com&size=128"
+        },
+        {
+          "name": "接码平台",
+          "url": "https://lubansms.com",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://lubansms.com&size=128"
+        },
+        {
+          "name": "免费接码",
+          "url": "https://www.smsonline.cloud/zh",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://www.smsonline.cloud/zh&size=128"
+        },
+        {
+          "name": "在线音乐",
+          "url": "https://music.eooce.com",
+          "icon": "https://p3.music.126.net/tBTNafgjNnTL1KlZMt7lVA==/18885211718935735.jpg"
+        },
+        {
+          "name": "在线电影",
+          "url": "https://libretv.eooce.com",
+          "icon": "https://img.icons8.com/color/240/cinema---v1.png"
+        },
+        {
+          "name": "免费图片",
+          "url": "https://www.pexels.com/zh-cn/",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://www.pexels.com/zh-cn/&size=128"
+        }
+      ],
+      "children": []
+    },
+    {
+      "name": "工具",
+      "bookmarks": [
+        {
+          "name": "JSON工具",
+          "url": "https://www.json.cn",
+          "icon": "https://img.icons8.com/nolan/128/json.png"
+        },
+        {
+          "name": "base64工具",
+          "url": "https://www.qqxiuzi.cn/bianma/base64.htm",
+          "icon": "https://cdn.base64decode.org/assets/images/b64-180.webp"
+        },
+        {
+          "name": "二维码生成",
+          "url": "https://cli.im",
+          "icon": "https://img.icons8.com/fluency/96/qr-code.png"
+        },
+        {
+          "name": "JS混淆",
+          "url": "https://obfuscator.io",
+          "icon": "https://img.icons8.com/color/240/javascript--v1.png"
+        },
+        {
+          "name": "Python混淆",
+          "url": "https://freecodingtools.org/tools/obfuscator/python",
+          "icon": "https://img.icons8.com/color/240/python--v1.png"
+        },
+        {
+          "name": "Remove.photos",
+          "url": "https://remove.photos/zh-cn",
+          "icon": "https://img.icons8.com/doodle/192/picture.png"
+        }
+      ],
+      "children": []
+    },
+    {
+      "name": "Cloud",
+      "bookmarks": [
+        {
+          "name": "阿里云",
+          "url": "https://www.aliyun.com",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://www.aliyun.com&size=128"
+        },
+        {
+          "name": "腾讯云",
+          "url": "https://cloud.tencent.com",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://cloud.tencent.com&size=128"
+        },
+        {
+          "name": "甲骨文云",
+          "url": "https://cloud.oracle.com",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://cloud.oracle.com&size=128"
+        },
+        {
+          "name": "亚马逊云",
+          "url": "https://aws.amazon.com",
+          "icon": "https://img.icons8.com/color/144/amazon-web-services.png"
+        }
+      ],
+      "children": []
+    },
+    {
+      "name": "AI",
+      "bookmarks": [
+        {
+          "name": "ChatGPT",
+          "url": "https://chat.openai.com",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://chat.openai.com&size=128"
+        },
+        {
+          "name": "Gemini",
+          "url": "https://gemini.google.com",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://gemini.google.com&size=128"
+        },
+        {
+          "name": "Perplexity",
+          "url": "https://www.perplexity.ai",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://www.perplexity.ai&size=128"
+        },
+        {
+          "name": "Deepseek",
+          "url": "https://www.deepseek.com",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://www.deepseek.com&size=128"
+        },
+        {
+          "name": "Claude",
+          "url": "https://claude.ai",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://claude.ai&size=128"
+        },
+        {
+          "name": "阿里千问",
+          "url": "https://chat.qwenlm.ai",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://chat.qwenlm.ai&size=128"
+        },
+        {
+          "name": "Kimi",
+          "url": "https://www.kimi.com",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://www.kimi.com&size=128"
+        }
+      ],
+      "children": []
+    },
+    {
+      "name": "邮箱",
+      "bookmarks": [
+        {
+          "name": "Gmail",
+          "url": "https://mail.google.com",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://mail.google.com&size=128"
+        },
+        {
+          "name": "Outlook",
+          "url": "https://outlook.live.com",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://outlook.live.com&size=128"
+        },
+        {
+          "name": "QQ邮箱",
+          "url": "https://mail.qq.com",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://mail.qq.com&size=128"
+        },
+        {
+          "name": "Proton Mail",
+          "url": "https://account.proton.me",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://account.proton.me&size=128"
+        },
+        {
+          "name": "雅虎邮箱",
+          "url": "https://mail.yahoo.com",
+          "icon": "https://img.icons8.com/color/240/yahoo--v2.png"
+        },
+        {
+          "name": "临时邮箱",
+          "url": "https://temp-mail.org/",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://linshiyouxiang.net&size=128"
+        }
+      ],
+      "children": []
+    },
+    {
+      "name": "软件",
+      "bookmarks": [
+        {
+          "name": "Hellowindows",
+          "url": "https://hellowindows.cn",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://hellowindows.cn&size=128"
+        },
+        {
+          "name": "奇迹秀",
+          "url": "https://www.qijishow.com/down",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://www.qijishow.com/down&size=128"
+        },
+        {
+          "name": "软件先锋",
+          "url": "https://topcracked.com",
+          "icon": "https://cdn.mac89.com/win_macxf_node/static/favicon.ico"
+        },
+        {
+          "name": "Macwk",
+          "url": "https://www.macwk.com",
+          "icon": "https://t0.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=https://www.macwk.com&size=128"
+        },
+        {
+          "name": "Macsc",
+          "url": "https://mac.macsc.com",
+          "icon": "https://cdn.mac89.com/macsc_node/static/favicon.ico"
+        }
+      ],
+      "children": []
+    }
+  ],
+  "adminAvatar": "https://avatars.githubusercontent.com/u/115806912?v=4"
+}
