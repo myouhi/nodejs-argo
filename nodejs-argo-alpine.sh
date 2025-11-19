@@ -557,7 +557,7 @@ edit_variables() {
             echo -e "${GREEN}0.${RESET} 返回上一页"
             read -rp "$(yellow "请选择: ")" sub_choice
             case $sub_choice in
-                1) read -p "输入新 UUID (留空生成): " v; [ -z "$v" ] && v=$(generate_uuid); update_config_value "UUID" "$v" ;;
+                1) read -p "输入新 UUID: " v; [ -z "$v" ] && v=$(generate_uuid); update_config_value "UUID" "$v" ;;
                 2) read -p "输入新 名称前缀: " v; update_config_value "NAME" "$v" ;;
                 3) read -p "输入新 HTTP端口: " v; validate_port "$v" "PORT" && update_config_value "PORT" "$v" ;;
                 [sS]) if save_and_restart; then return 10; fi ;;
