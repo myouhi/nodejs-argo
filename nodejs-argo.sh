@@ -209,10 +209,11 @@ initialize_install_vars() {
 prompt_user_config() {
     cyan "--- 安装流程 ---"
 
-    read -p "$(yellow "1. 请输入 用户UUID [默认: $UUID_DEFAULT] (留空自动生成): ")" UUID_INPUT
+    read -p "$(yellow "1. 请输入 用户UUID (留空自动生成): ")" UUID_INPUT
     if [ -z "$UUID_INPUT" ]; then
-        UUID="$UUID_DEFAULT"
-        [ "$OLD_CONFIG_LOADED" = false ] && UUID_GENERATED=true
+        UUID="$(generate_uuid)"
+        UUID_GENERATED=true
+        green "  -> 已自动生成新 UUID: $UUID"
     else
         UUID="$UUID_INPUT"
     fi
