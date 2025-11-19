@@ -273,7 +273,7 @@ validate_and_confirm() {
     clear
     cyan "--- 请确认配置 ---"
     
-    echo -e "UUID: $(green "$UUID")"[ "$UUID_GENERATED" = true ] && bright_green "  (已自动生成)"
+    echo -e "UUID: $(green "$UUID")" $( [ "$UUID_GENERATED" = true ] && bright_green " (已自动生成)" || true )
     echo -e "HTTP端口: $(green "$PORT")"
     echo -e "隧道密钥: $(green "********")"$( [ "$OLD_CONFIG_LOADED" = true ] && yellow " (旧值)" || true )
     echo -e "隧道域名: $(green "$ARGO_DOMAIN")"
