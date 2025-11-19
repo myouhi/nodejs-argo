@@ -10,6 +10,10 @@ SERVICE_FILE="/etc/systemd/system/$APP_NAME.service"
 ZIP_URL="https://github.com/myouhi/nodejs-argo/releases/download/nodejs-argo/nodejs-argo.zip"
 ZIP_FILE="/tmp/$APP_NAME.zip"
 
+SHORTCUT_NAME="js"
+SHORTCUT_PATH="/usr/local/bin/$SHORTCUT_NAME"
+SCRIPT_URL="https://raw.githubusercontent.com/myouhi/nodejs-argo/main/nodejs-argo.sh"
+
 OS_ID=""
 PKG_MANAGER=""
 NODE_SETUP_URL=""
@@ -27,9 +31,12 @@ white() { echo -e "${WHITE}$1${RESET}"; }
 
 load_existing_config() {
     if [ -f "$CONFIG_FILE_ENV" ]; then
-        set +e
-        source "$CONFIG_FILE_ENV"
-        set -e
+        local TMP_ENV=$(mktemp)
+        tr -d '\r' < "$CONFIG_FILE_ENV" > "$TMP_ENV"
+        set -a
+        source "$TMP_ENV"
+        set +a
+        rm -f "$TMP_ENV"
         
         UUID="${UUID:-}"
         PORT="${PORT:-3000}"
@@ -40,7 +47,6 @@ load_existing_config() {
         SUB_PATH="${SUB_PATH:-sub}"
         NAME="${NAME:-VIs}"
         ADMIN_PASSWORD="${ADMIN_PASSWORD:-123456}"
-        
         return 0
     fi
     return 1
@@ -64,8 +70,6 @@ get_public_ip() {
     else
         green "已自动获取公网 IPv6: $SERVER_IP_V6_AUTO"
     fi
-    
-    unset SERVER_IP SERVER_IP_V6
 }
 
 check_root() {
@@ -159,7 +163,7 @@ check_port() {
 }
 
 check_status_for_menu() {
-    PADDING="        " 
+    PADDING="    " 
 
     STATUS_TEXT=""
     if [ -f "$SERVICE_FILE" ]; then
@@ -175,17 +179,6 @@ check_status_for_menu() {
     echo -e "${PADDING}${STATUS_TEXT}"
     
     cyan "---------------------------------"
-}
-
-validate_ip() {
-    local val=$1
-    if [[ "$val" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]] || \
-       [[ "$val" =~ ^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$ ]] || \
-       [[ "$val" =~ ^[0-9a-fA-F:]+$ ]]; then
-       return 0
-    fi
-    red "错误: IP 地址格式似乎无效。"
-    return 1
 }
 
 initialize_install_vars() {
@@ -281,7 +274,7 @@ validate_and_confirm() {
     
     echo -e "UUID: $(green "$UUID")"[ "$UUID_GENERATED" = true ] && bright_green "  (已自动生成)"
     echo -e "HTTP端口: $(green "$PORT")"
-    echo -e "隧道密钥: $(green "********")$( [ "$OLD_CONFIG_LOADED" = true ] && yellow " (旧值)" || true )"
+    echo -e "隧道密钥: $(green "********")"$( [ "$OLD_CONFIG_LOADED" = true ] && yellow " (旧值)" || true )
     echo -e "隧道域名: $(green "$ARGO_DOMAIN")"
     echo -e "Argo端口: $(green "$ARGO_PORT")"
     echo -e "优选IP/域名: $(green "$CFIP")"
@@ -296,8 +289,46 @@ validate_and_confirm() {
     return 0
 }
 
+create_shortcut() {
+    white "正在创建全局快捷命令..."
+    
+    mkdir -p /usr/local/bin
+
+    cat > "$SHORTCUT_PATH" << 'EOFSCRIPT'
+#!/bin/bash
+RED='\033[1;31m'
+CYAN='\033[1;36m'
+RESET='\033[0m'
+
+if [ "$EUID" -ne 0 ]; then
+    echo -e "${RED}错误: 请以 root 权限运行此命令。${RESET}"
+    exit 1
+fi
+
+SCRIPT_URL="https://raw.githubusercontent.com/myouhi/nodejs-argo/main/nodejs-argo.sh"
+
+echo -e "${CYAN}正在连接服务器获取最新管理脚本 (Systemd)...${RESET}"
+TMP_SCRIPT=$(mktemp)
+if curl -sL "$SCRIPT_URL" -o "$TMP_SCRIPT"; then
+    bash "$TMP_SCRIPT"
+    rm -f "$TMP_SCRIPT"
+else
+    echo -e "${RED}获取脚本失败，请检查网络连接。${RESET}"
+    rm -f "$TMP_SCRIPT"
+    exit 1
+fi
+EOFSCRIPT
+
+    chmod +x "$SHORTCUT_PATH"
+    
+    echo ""
+    bright_green "快捷命令已创建！"
+    echo -e "以后在终端直接输入 ${CYAN}${SHORTCUT_NAME}${RESET} 即可获取最新脚本并打开菜单。"
+    echo ""
+}
+
 perform_core_installation() {
-    bright_green "开始安装 (Root模式)... 日志: $LOG_FILE"
+    bright_green "开始安装 (Systemd模式)... 日志: $LOG_FILE"
     [ -f "$SERVICE_FILE" ] && systemctl stop "$APP_NAME" &>/dev/null || true
     install_nodejs
     
@@ -363,13 +394,20 @@ PrivateTmp=true
 NoNewPrivileges=true
 ProtectSystem=full
 ProtectHome=true
+StandardOutput=append:/var/log/${APP_NAME}.log
+StandardError=append:/var/log/${APP_NAME}.err
 [Install]
 WantedBy=multi-user.target
 EOF
 
+    touch /var/log/${APP_NAME}.log /var/log/${APP_NAME}.err
+    chown $APP_NAME:$APP_NAME /var/log/${APP_NAME}.log /var/log/${APP_NAME}.err
+
     systemctl daemon-reload
     systemctl enable "$APP_NAME"
     systemctl start "$APP_NAME"
+
+    create_shortcut
 
     yellow "1.服务已安装完成！"
     yellow "2.服务已启动并开机自启"
@@ -400,8 +438,20 @@ uninstall_service() {
     userdel -r "$APP_NAME" &>/dev/null || true
     
     rm -rf "$INSTALL_DIR"
+    rm -f /var/log/${APP_NAME}.log /var/log/${APP_NAME}.err
     
+    if [ -f "$SHORTCUT_PATH" ]; then
+        rm -f "$SHORTCUT_PATH"
+        white "快捷命令已移除: $SHORTCUT_PATH"
+    fi
+
+    if [ -f "/usr/bin/$SHORTCUT_NAME" ]; then
+        rm -f "/usr/bin/$SHORTCUT_NAME"
+        white "清理旧版快捷命令: /usr/bin/$SHORTCUT_NAME"
+    fi
+
     bright_green "服务已卸载，用户和安装目录已删除。"
+    exit 0
 }
 
 restart_service() {
@@ -424,6 +474,9 @@ view_status() {
         return 1
     fi
     systemctl --no-pager status "$APP_NAME"
+    echo ""
+    yellow "--- 错误日志末尾 ($APP_NAME.err) ---"
+    tail -n 10 "/var/log/${APP_NAME}.err" 2>/dev/null
 }
 
 view_subscription() {
@@ -442,119 +495,204 @@ view_subscription() {
 edit_variables() {
     check_root
     [ ! -f "$CONFIG_FILE_ENV" ] && red "配置文件不存在，请先安装服务" && sleep 2 && return
+    
     cp "$CONFIG_FILE_ENV" "$CONFIG_FILE_ENV.bak"
 
     update_config_value() {
-        local SAFE_NEW_VALUE=$(echo "$2" | sed 's/[\/&]/\\&/g')
-        sed -i "s|^$1=.*|$1=$SAFE_NEW_VALUE|#" "$CONFIG_FILE_ENV"
+        local key=$1
+        local val=$2
+        local SAFE_NEW_VALUE=$(echo "$val" | sed 's/[\/&]/\\&/g')
+        sed -i "s|^$key=.*|$key=$SAFE_NEW_VALUE|#" "$CONFIG_FILE_ENV"
     }
-    
+
+    show_var() {
+        [ -z "$1" ] && echo "$(yellow "未设置")" || echo "$(green "$1")"
+    }
+
+    reload_config() {
+        if [ -f "$CONFIG_FILE_ENV" ]; then
+            local TMP_ENV=$(mktemp)
+            tr -d '\r' < "$CONFIG_FILE_ENV" > "$TMP_ENV"
+            set -a
+            source "$TMP_ENV"
+            set +a
+            rm -f "$TMP_ENV"
+        fi
+    }
+
+    save_and_restart() {
+        reload_config
+        if [ -z "$ARGO_DOMAIN" ] || [ -z "$ARGO_AUTH" ]; then
+            red "错误: Argo域名和密钥不能为空！"
+            sleep 2
+            return 1
+        fi
+        rm "$CONFIG_FILE_ENV.bak"
+        bright_green "配置已保存，正在重启服务..."
+        restart_service
+        sleep 1
+        return 0
+    }
+
     validate_port() {
-        local val=$1
-        local name=$2
+        local val=$1; local name=$2
         if ! [[ "$val" =~ ^[0-9]+$ ]] || [ "$val" -lt 1 ] || [ "$val" -gt 65535 ]; then
             red "错误: $name 必须是 1-65535 的有效端口号。"
             return 1
         fi
         if [ "$name" == "PORT" ]; then
-            local CURRENT_PORT=$(grep '^PORT=' "$CONFIG_FILE_ENV" | cut -d '=' -f 2)
-            if lsof -i:"$val" &>/dev/null && [ "$val" != "$CURRENT_PORT" ]; then
-                red "错误: HTTP服务端口 $val 已被占用，请换一个端口。"
+            local CURRENT_PORT=$(grep '^PORT=' "$CONFIG_FILE_ENV" | cut -d '=' -f 2 | tr -d '\r')
+            if [ "$val" != "$CURRENT_PORT" ] && lsof -i:"$val" &>/dev/null; then
+                red "错误: 端口 $val 已被占用。"
                 return 1
             fi
         fi
         return 0
     }
 
-    while true; do
-        clear
-        set +e
-        source "$CONFIG_FILE_ENV" 2>/dev/null 
-        set -e
+    submenu_basic() {
+        while true; do
+            printf "\033c"; reload_config
+            echo -e "${YELLOW}=== 基础设置 ===${RESET}"
+            echo -e "${GREEN}1.${RESET} 用户UUID     : $(show_var "$UUID")"
+            echo -e "${GREEN}2.${RESET} 节点名称前缀 : $(show_var "$NAME")"
+            echo -e "${GREEN}3.${RESET} HTTP服务端口 : $(show_var "$PORT")"
+            echo -e "${CYAN}------------------------${RESET}"
+            echo -e "${BRIGHT_GREEN}S.${RESET} 保存并重启服务"
+            echo -e "${GREEN}0.${RESET} 返回上一页"
+            read -rp "$(yellow "请选择: ")" sub_choice
+            case $sub_choice in
+                1) read -p "输入新 UUID: " v; [ -z "$v" ] && v=$(generate_uuid); update_config_value "UUID" "$v" ;;
+                2) read -p "输入新 名称前缀: " v; update_config_value "NAME" "$v" ;;
+                3) read -p "输入新 HTTP端口: " v; validate_port "$v" "PORT" && update_config_value "PORT" "$v" ;;
+                [sS]) if save_and_restart; then return 10; fi ;;
+                0) return 0 ;;
+                *) red "无效选项"; sleep 0.5 ;;
+            esac
+        done
+    }
 
-        echo -e "${CYAN}========== 修改配置界面 ==========${RESET}"
-        echo -e "${YELLOW}=== 基础设置 ===${RESET}"
-        echo -e "${GREEN}1.${RESET} 用户UUID: $(green "$UUID")"
-        echo -e "${GREEN}2.${RESET} 节点名称前缀: $(green "$NAME")"
-        echo -e "${GREEN}3.${RESET} HTTP服务端口: $(green "$PORT")"
-        echo
-        echo -e "${YELLOW}=== Argo 隧道设置 ===${RESET}"
-        echo -e "${GREEN}4.${RESET} 固定隧道域名: $(green "$ARGO_DOMAIN")"
-        echo -e "${GREEN}5.${RESET} 固定隧道密钥: $(green "********")"
-        echo -e "${GREEN}6.${RESET} Argo隧道端口: $(green "$ARGO_PORT")"
-        echo
-        echo -e "${YELLOW}=== 节点设置 ===${RESET}"
-        echo -e "${GREEN}7.${RESET} 优选域名或IP: $(green "$CFIP")"
-        echo -e "${GREEN}8.${RESET} 节点端口: $(green "$CFPORT")"
-        echo -e "${GREEN}9.${RESET} 订阅路径: $(green "$SUB_PATH")"
-        echo
-        echo -e "${YELLOW}=== 哪吒监控设置 (留空则禁用) ===${RESET}"
-        echo -e "${GREEN}10.${RESET} 哪吒服务器: $(green "$NEZHA_SERVER")"
-        echo -e "${GREEN}11.${RESET} 哪吒端口: $(green "$NEZHA_PORT")"
-        echo -e "${GREEN}12.${RESET} 哪吒密钥: $(green "$NEZHA_KEY")"
-        echo
-        echo -e "${YELLOW}=== 高级设置 ===${RESET}"
-        echo -e "${GREEN}13.${RESET} 订阅上传地址: $(green "$UPLOAD_URL")"
-        echo -e "${GREEN}14.${RESET} 项目分配域名: $(green "$PROJECT_URL")"
-        echo -e "${GREEN}15.${RESET} 自动访问保活: $(green "$AUTO_ACCESS")"
-        echo -e "${GREEN}16.${RESET} 运行目录: $(green "$FILE_PATH")"
-        echo -e "${GREEN}17.${RESET} 书签管理密码: $(green "********")"
-        echo
+    submenu_argo() {
+        while true; do
+            printf "\033c"; reload_config
+            echo -e "${YELLOW}=== Argo 隧道设置 ===${RESET}"
+            echo -e "${GREEN}1.${RESET} 固定隧道域名 : $(show_var "$ARGO_DOMAIN")"
+            echo -e "${GREEN}2.${RESET} 固定隧道密钥 : $(green "********")"
+            echo -e "${GREEN}3.${RESET} Argo隧道端口 : $(show_var "$ARGO_PORT")"
+            echo -e "${CYAN}------------------------${RESET}"
+            echo -e "${BRIGHT_GREEN}S.${RESET} 保存并重启服务"
+            echo -e "${GREEN}0.${RESET} 返回上一页"
+            read -rp "$(yellow "请选择: ")" sub_choice
+            case $sub_choice in
+                1) read -p "输入新 隧道域名: " v; update_config_value "ARGO_DOMAIN" "$v" ;;
+                2) read -s -p "输入新 隧道密钥: " v; echo; update_config_value "ARGO_AUTH" "$v" ;;
+                3) read -p "输入新 Argo端口: " v; validate_port "$v" "ARGO_PORT" && update_config_value "ARGO_PORT" "$v" ;;
+                [sS]) if save_and_restart; then return 10; fi ;;
+                0) return 0 ;;
+                *) red "无效选项"; sleep 0.5 ;;
+            esac
+        done
+    }
+
+    submenu_network() {
+        while true; do
+            printf "\033c"; reload_config
+            echo -e "${YELLOW}=== 节点网络设置 ===${RESET}"
+            echo -e "${GREEN}1.${RESET} 优选域名或IP : $(show_var "$CFIP")"
+            echo -e "${GREEN}2.${RESET} 节点端口     : $(show_var "$CFPORT")"
+            echo -e "${GREEN}3.${RESET} 订阅路径     : $(show_var "$SUB_PATH")"
+            echo -e "${CYAN}------------------------${RESET}"
+            echo -e "${BRIGHT_GREEN}S.${RESET} 保存并重启服务"
+            echo -e "${GREEN}0.${RESET} 返回上一页"
+            read -rp "$(yellow "请选择: ")" sub_choice
+            case $sub_choice in
+                1) read -p "输入新 优选IP: " v; update_config_value "CFIP" "$v" ;;
+                2) read -p "输入新 节点端口: " v; update_config_value "CFPORT" "$v" ;;
+                3) read -p "输入新 订阅路径: " v; update_config_value "SUB_PATH" "$v" ;;
+                [sS]) if save_and_restart; then return 10; fi ;;
+                0) return 0 ;;
+                *) red "无效选项"; sleep 0.5 ;;
+            esac
+        done
+    }
+
+    submenu_nezha() {
+        while true; do
+            printf "\033c"; reload_config
+            echo -e "${YELLOW}=== 哪吒监控设置 ===${RESET}"
+            echo -e "${GREEN}1.${RESET} 哪吒服务器  : $(show_var "$NEZHA_SERVER")"
+            echo -e "${GREEN}2.${RESET} 哪吒端口    : $(show_var "$NEZHA_PORT")"
+            echo -e "${GREEN}3.${RESET} 哪吒密钥    : $(show_var "$NEZHA_KEY")"
+            echo -e "${CYAN}------------------------${RESET}"
+            echo -e "${BRIGHT_GREEN}S.${RESET} 保存并重启服务"
+            echo -e "${GREEN}0.${RESET} 返回上一页"
+            read -rp "$(yellow "请选择: ")" sub_choice
+            case $sub_choice in
+                1) read -p "输入新 哪吒服务器: " v; update_config_value "NEZHA_SERVER" "$v" ;;
+                2) read -p "输入新 哪吒端口: " v; update_config_value "NEZHA_PORT" "$v" ;;
+                3) read -p "输入新 哪吒密钥: " v; update_config_value "NEZHA_KEY" "$v" ;;
+                [sS]) if save_and_restart; then return 10; fi ;;
+                0) return 0 ;;
+                *) red "无效选项"; sleep 0.5 ;;
+            esac
+        done
+    }
+
+    submenu_advanced() {
+        while true; do
+            printf "\033c"; reload_config
+            echo -e "${YELLOW}=== 高级设置 ===${RESET}"
+            echo -e "${GREEN}1.${RESET} 订阅上传地址 : $(show_var "$UPLOAD_URL")"
+            echo -e "${GREEN}2.${RESET} 项目分配域名 : $(show_var "$PROJECT_URL")"
+            echo -e "${GREEN}3.${RESET} 自动访问保活 : $(show_var "$AUTO_ACCESS")"
+            echo -e "${GREEN}4.${RESET} 运行目录     : $(show_var "$FILE_PATH")"
+            echo -e "${GREEN}5.${RESET} 书签管理密码 : $(green "********")"
+            echo -e "${CYAN}------------------------${RESET}"
+            echo -e "${BRIGHT_GREEN}S.${RESET} 保存并重启服务"
+            echo -e "${GREEN}0.${RESET} 返回上一页"
+            read -rp "$(yellow "请选择: ")" sub_choice
+            case $sub_choice in
+                1) read -p "输入新 上传地址: " v; update_config_value "UPLOAD_URL" "$v" ;;
+                2) read -p "输入新 项目域名: " v; update_config_value "PROJECT_URL" "$v" ;;
+                3) read -p "是否开启保活 (true/false): " v; update_config_value "AUTO_ACCESS" "$v" ;;
+                4) read -p "输入新 运行目录: " v; update_config_value "FILE_PATH" "$v" ;;
+                5) read -s -p "输入新 管理密码: " v; echo; update_config_value "ADMIN_PASSWORD" "$v" ;;
+                [sS]) if save_and_restart; then return 10; fi ;;
+                0) return 0 ;;
+                *) red "无效选项"; sleep 0.5 ;;
+            esac
+        done
+    }
+
+    while true; do
+        printf "\033c"
+        echo -e "${CYAN}========== 配置分类菜单 ==========${RESET}"
+        echo -e "${GREEN}1.${RESET} 基础设置 $(yellow "(UUID, 端口, 名称)")"
+        echo -e "${GREEN}2.${RESET} Argo设置 $(yellow "(域名, 密钥, 隧道端口)")"
+        echo -e "${GREEN}3.${RESET} 节点网络 $(yellow "(优选IP, 路径, 节点端口)")"
+        echo -e "${GREEN}4.${RESET} 哪吒监控 $(yellow "(服务器, 密钥)")"
+        echo -e "${GREEN}5.${RESET} 高级选项 $(yellow "(保活, 密码, 其他参数)")"
         echo -e "${CYAN}---------------------------------${RESET}"
-        echo -e "${GREEN}S.${RESET} 保存并重启服务"
-        echo -e "${GREEN}0.${RESET} 放弃修改并退出"
+        echo -e "${GREEN}0.${RESET} 返回上一页"
         echo -e "${CYAN}=================================${RESET}"
+        
         read -rp "$(yellow "请输入选项: ")" choice
 
         case $choice in
-            1) read -p "$(yellow "请输入新的 UUID (留空则自动生成): ")" NEW_VALUE; [ -z "$NEW_VALUE" ] && NEW_VALUE=$(generate_uuid); update_config_value "UUID" "$NEW_VALUE";;
-            2) read -p "$(yellow "请输入新的 NAME: ")" NEW_VALUE; update_config_value "NAME" "$NEW_VALUE";;
-            3) read -p "$(yellow "请输入新的 PORT: ")" NEW_VALUE;
-                if validate_port "$NEW_VALUE" "PORT"; then update_config_value "PORT" "$NEW_VALUE"; fi;;
-            
-            4) read -p "$(yellow "请输入新的 ARGO_DOMAIN: ")" NEW_VALUE; update_config_value "ARGO_DOMAIN" "$NEW_VALUE";;
-            5) read -s -p "$(yellow "请输入新的 ARGO_AUTH: ")" NEW_VALUE; echo; update_config_value "ARGO_AUTH" "$NEW_VALUE";;
-            6) read -p "$(yellow "请输入新的 ARGO_PORT: ")" NEW_VALUE;
-                if validate_port "$NEW_VALUE" "ARGO_PORT"; then update_config_value "ARGO_PORT" "$NEW_VALUE"; fi;;
-            7) read -p "$(yellow "请输入新的 CFIP: ")" NEW_VALUE; update_config_value "CFIP" "$NEW_VALUE";;
-            8) read -p "$(yellow "请输入新的 CFPORT: ")" NEW_VALUE; update_config_value "CFPORT" "$NEW_VALUE";;
-            9) read -p "$(yellow "请输入新的 SUB_PATH: ")" NEW_VALUE; update_config_value "SUB_PATH" "$NEW_VALUE";;
-            
-            10) read -p "$(yellow "请输入新的 NEZHA_SERVER: ")" NEW_VALUE; update_config_value "NEZHA_SERVER" "$NEW_VALUE";;
-            11) read -p "$(yellow "请输入新的 NEZHA_PORT: ")" NEW_VALUE; update_config_value "NEZHA_PORT" "$NEW_VALUE";;
-            12) read -p "$(yellow "请输入新的 NEZHA_KEY: ")" NEW_VALUE; update_config_value "NEZHA_KEY" "$NEW_VALUE";;
-            
-            13) read -p "$(yellow "请输入新的 UPLOAD_URL: ")" NEW_VALUE; update_config_value "UPLOAD_URL" "$NEW_VALUE";;
-            14) read -p "$(yellow "请输入新的 PROJECT_URL: ")" NEW_VALUE; update_config_value "PROJECT_URL" "$NEW_VALUE";;
-            15) read -p "$(yellow "请输入新的 AUTO_ACCESS (true/false): ")" NEW_VALUE; update_config_value "AUTO_ACCESS" "$NEW_VALUE";;
-            16) read -p "$(yellow "请输入新的 FILE_PATH: ")" NEW_VALUE; update_config_value "FILE_PATH" "$NEW_VALUE";;
-            17) read -s -p "$(yellow "请输入新的 ADMIN_PASSWORD: ")" NEW_VALUE; echo; update_config_value "ADMIN_PASSWORD" "$NEW_VALUE";;
-            
-            [sS])
-                set +e
-                source "$CONFIG_FILE_ENV" 2>/dev/null
-                set -e
-                
-                if [ -z "$ARGO_DOMAIN" ] || [ -z "$ARGO_AUTH" ]; then
-                    red "错误: ARGO_DOMAIN 和 ARGO_AUTH 为必填项，请返回修改。"
-                    sleep 2
-                    continue
-                fi
-
-                rm "$CONFIG_FILE_ENV.bak"; bright_green "正在保存配置并重启服务..."; restart_service; sleep 1; break
-                ;;
+            1) submenu_basic; [ $? -eq 10 ] && break ;;
+            2) submenu_argo; [ $? -eq 10 ] && break ;;
+            3) submenu_network; [ $? -eq 10 ] && break ;;
+            4) submenu_nezha; [ $? -eq 10 ] && break ;;
+            5) submenu_advanced; [ $? -eq 10 ] && break ;;
             0) 
                 mv "$CONFIG_FILE_ENV.bak" "$CONFIG_FILE_ENV"
                 break
                 ;;
             *) 
-                red "无效选项" ;;
+                red "无效选项" 
+                sleep 0.5 
+                ;;
         esac
-        
-        [ "$choice" != "s" ] && [ "$choice" != "S" ] && [ "$choice" != "0" ] && {
-            read -n 1 -s -r -p "配置已更新，按任意键继续编辑..."
-            echo ""
-        }
     done
 }
 
@@ -567,7 +705,7 @@ main() {
     while true; do
         clear
         echo -e "${CYAN}=================================${RESET}"
-        echo -e "${CYAN}      Nodejs-Argo 管理脚本       ${RESET}"
+        echo -e "${CYAN}    Nodejs-Argo 管理脚本         ${RESET}"
         echo -e "${CYAN}=================================${RESET}"
         check_status_for_menu
         
