@@ -227,11 +227,11 @@ prompt_user_config() {
         break
     done
 
-    read -s -p "$(yellow "3. 请输入 固定隧道密钥 (ARGO_AUTH) [$( [ -z "$ARGO_AUTH" ] && echo '必填' || echo '已配置')]: ")" ARGO_AUTH_INPUT
+    read -s -p "$(yellow "3. 请输入 固定隧道密钥 [$( [ -z "$ARGO_AUTH" ] && echo '必填' || echo '已配置')]: ")" ARGO_AUTH_INPUT
     echo 
     [ -z "$ARGO_AUTH_INPUT" ] || ARGO_AUTH="$ARGO_AUTH_INPUT"
 
-    read -p "$(yellow "4. 请输入 固定隧道域名 (ARGO_DOMAIN) [默认: $ARGO_DOMAIN]: ")" ARGO_DOMAIN_INPUT
+    read -p "$(yellow "4. 请输入 固定隧道域名 [$( [ -z "$ARGO_DOMAIN" ] && echo '必填' || echo "默认: $ARGO_DOMAIN" )]: ")" ARGO_DOMAIN_INPUT
     [ -z "$ARGO_DOMAIN_INPUT" ] || ARGO_DOMAIN="$ARGO_DOMAIN_INPUT"
 
     while true; do
