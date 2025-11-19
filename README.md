@@ -17,12 +17,6 @@ nodejs-argo是一个强大的Argo隧道部署工具，专为PaaS平台和游戏�
 bash <(curl -sSL https://raw.githubusercontent.com/myouhi/nodejs-argo/main/install.sh)
 ```
 
-### 🧭 导航页
-<img width="1440" height="785" alt="导航页" src="https://raw.githubusercontent.com/myouhi/nodejs-argo/main/image/nav.png" />
-
-### 🔖 后台管理
-<img width="1440" height="787" alt="后台管理" src="https://raw.githubusercontent.com/myouhi/nodejs-argo/main/image/backend.png" />
-
 ### 📋 环境变量
 
 | 变量名 | 是否必须 | 默认值 | 说明 |
