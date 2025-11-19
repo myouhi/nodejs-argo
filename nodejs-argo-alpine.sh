@@ -11,7 +11,7 @@ ZIP_URL="https://github.com/myouhi/nodejs-argo/releases/download/nodejs-argo/nod
 ZIP_FILE="/tmp/$APP_NAME.zip"
 
 # === 全局快捷命令配置 ===
-SHORTCUT_NAME="nodejs-argo"
+SHORTCUT_NAME="js"
 SHORTCUT_PATH="/usr/local/bin/$SHORTCUT_NAME"
 SCRIPT_URL="https://raw.githubusercontent.com/myouhi/nodejs-argo/main/nodejs-argo-alpine.sh"
 
