@@ -410,9 +410,8 @@ EOF
 
     create_shortcut
 
-    yellow "1.服务已安装完成！"
-    yellow "2.服务已启动并开机自启"
-    yellow "3.请等待1分钟后,在菜单里使用 4.查看订阅链接"
+    yellow "1.服务已安装完成！服务已启动并开机自启"
+    yellow "2.请等待1分钟后,在菜单里使用 4.查看订阅链接"
 }
 
 install_service() {
