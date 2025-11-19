@@ -14,7 +14,7 @@ nodejs-argo是一个强大的Argo隧道部署工具，专为PaaS平台和游戏�
 ### 🚀 一键安装脚本
 
 ```bash
-bash <(curl -sSL https://raw.githubusercontent.com/myouhi/nodejs-argo/main/nodejs-argo.sh)
+bash <(curl -sSL https://raw.githubusercontent.com/myouhi/nodejs-argo/main/install.sh)
 ```
 
 ### 🧭 导航页
