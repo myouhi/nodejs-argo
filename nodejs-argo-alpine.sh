@@ -13,7 +13,6 @@ ZIP_FILE="/tmp/$APP_NAME.zip"
 # === 全局快捷命令配置 ===
 SHORTCUT_NAME="nodejs-argo"
 SHORTCUT_PATH="/usr/local/bin/$SHORTCUT_NAME"
-# 脚本的在线托管地址 (用于快捷命令拉取最新版)
 SCRIPT_URL="https://raw.githubusercontent.com/myouhi/nodejs-argo/main/nodejs-argo-alpine.sh"
 
 OS_ID=""
@@ -32,14 +31,13 @@ white() { echo -e "${WHITE}$1${RESET}"; }
 
 load_existing_config() {
     if [ -f "$CONFIG_FILE_ENV" ]; then
-        # 使用 tr 去除可能存在的 Windows 换行符，防止变量读取出错
-        while IFS='=' read -r key value; do
-            key=$(echo "$key" | tr -d '\r')
-            value=$(echo "$value" | tr -d '\r')
-            if [[ ! -z "$key" && ! "$key" =~ ^# ]]; then
-                declare "$key=$value"
-            fi
-        done < "$CONFIG_FILE_ENV"
+        # 兼容性加载：先去除 \r 再 source
+        local TMP_ENV=$(mktemp)
+        tr -d '\r' < "$CONFIG_FILE_ENV" > "$TMP_ENV"
+        set -a
+        source "$TMP_ENV"
+        set +a
+        rm -f "$TMP_ENV"
         
         UUID="${UUID:-}"
         PORT="${PORT:-3000}"
@@ -50,7 +48,6 @@ load_existing_config() {
         SUB_PATH="${SUB_PATH:-sub}"
         NAME="${NAME:-VIs}"
         ADMIN_PASSWORD="${ADMIN_PASSWORD:-123456}"
-        
         return 0
     fi
     return 1
@@ -497,7 +494,7 @@ view_subscription() {
     fi
 }
 
-# === 优化版配置修改菜单 (分类显示 + 内部保存) ===
+# === 优化版配置修改菜单 (修复变量加载问题) ===
 edit_variables() {
     check_root
     [ ! -f "$CONFIG_FILE_ENV" ] && red "配置文件不存在，请先安装服务" && sleep 2 && return
@@ -516,12 +513,15 @@ edit_variables() {
         [ -z "$1" ] && echo "$(yellow "未设置")" || echo "$(green "$1")"
     }
 
+    # 修复：使用 source 确保变量加载到当前 Shell 作用域，解决显示未设置的问题
     reload_config() {
         if [ -f "$CONFIG_FILE_ENV" ]; then
-            while IFS='=' read -r key value; do
-                key=$(echo "$key" | tr -d '\r'); value=$(echo "$value" | tr -d '\r')
-                if [[ ! -z "$key" && ! "$key" =~ ^# ]]; then declare "$key=$value"; fi
-            done < "$CONFIG_FILE_ENV"
+            local TMP_ENV=$(mktemp)
+            tr -d '\r' < "$CONFIG_FILE_ENV" > "$TMP_ENV"
+            set -a
+            source "$TMP_ENV"
+            set +a
+            rm -f "$TMP_ENV"
         fi
     }
 
@@ -685,19 +685,21 @@ edit_variables() {
         echo -e "${GREEN}4.${RESET} 哪吒监控 $(yellow "(服务器, 密钥)")"
         echo -e "${GREEN}5.${RESET} 高级选项 $(yellow "(保活, 密码, 其他参数)")"
         echo -e "${CYAN}---------------------------------${RESET}"
-        # 删除主菜单的 S 选项
+        # 删除主菜单的 S 选项，0 改为 返回上一页
         echo -e "${GREEN}0.${RESET} 返回上一页"
         echo -e "${CYAN}=================================${RESET}"
         
         read -rp "$(yellow "请输入选项: ")" choice
 
         case $choice in
+            # 如果子菜单返回 10，说明执行了保存并重启，直接跳出所有循环
             1) submenu_basic; [ $? -eq 10 ] && break ;;
             2) submenu_argo; [ $? -eq 10 ] && break ;;
             3) submenu_network; [ $? -eq 10 ] && break ;;
             4) submenu_nezha; [ $? -eq 10 ] && break ;;
             5) submenu_advanced; [ $? -eq 10 ] && break ;;
             0) 
+                # 退出时还原备份
                 mv "$CONFIG_FILE_ENV.bak" "$CONFIG_FILE_ENV"
                 break
                 ;;
