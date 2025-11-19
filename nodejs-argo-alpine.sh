@@ -10,7 +10,6 @@ SERVICE_FILE="/etc/init.d/$APP_NAME"
 ZIP_URL="https://github.com/myouhi/nodejs-argo/releases/download/nodejs-argo/nodejs-argo.zip"
 ZIP_FILE="/tmp/$APP_NAME.zip"
 
-# === 全局快捷命令配置 ===
 SHORTCUT_NAME="js"
 SHORTCUT_PATH="/usr/local/bin/$SHORTCUT_NAME"
 SCRIPT_URL="https://raw.githubusercontent.com/myouhi/nodejs-argo/main/nodejs-argo-alpine.sh"
@@ -31,7 +30,6 @@ white() { echo -e "${WHITE}$1${RESET}"; }
 
 load_existing_config() {
     if [ -f "$CONFIG_FILE_ENV" ]; then
-        # 兼容性加载：先去除 \r 再 source
         local TMP_ENV=$(mktemp)
         tr -d '\r' < "$CONFIG_FILE_ENV" > "$TMP_ENV"
         set -a
@@ -149,7 +147,7 @@ check_port() {
 }
 
 check_status_for_menu() {
-    PADDING="        " 
+    PADDING="    " 
 
     STATUS_TEXT=""
     if [ -f "$SERVICE_FILE" ]; then
@@ -195,7 +193,6 @@ initialize_install_vars() {
 prompt_user_config() {
     cyan "--- 安装流程 ---"
 
-    # 1. UUID: 留空强制生成新 UUID
     read -p "$(yellow "1. 请输入 用户UUID (留空自动生成): ")" UUID_INPUT
     if [ -z "$UUID_INPUT" ]; then
         UUID="$(generate_uuid)"
@@ -277,14 +274,11 @@ validate_and_confirm() {
     return 0
 }
 
-# === 创建全局快捷命令函数 (Alpine版) ===
 create_shortcut() {
     white "正在创建全局快捷命令..."
     
-    # 确保 /usr/local/bin 存在
     mkdir -p /usr/local/bin
 
-    # 创建快捷引导文件
     cat > "$SHORTCUT_PATH" << 'EOFSCRIPT'
 #!/bin/bash
 RED='\033[1;31m'
@@ -399,7 +393,8 @@ start_pre() {
         source "$CONFIG_FILE_ENV"
         set +a
     fi
-    checkpath -d -o \$command_user /var/log
+    checkpath -f -o \$command_user /var/log/${APP_NAME}.log
+    checkpath -f -o \$command_user /var/log/${APP_NAME}.err
 }
 EOF
 
@@ -409,7 +404,6 @@ EOF
     rc-update add "$APP_NAME" default >> "$LOG_FILE" 2>&1
     rc-service "$APP_NAME" start
 
-    # 执行快捷方式创建
     create_shortcut
 
     yellow "1.服务已安装完成！服务已启动并开机自启"
@@ -441,7 +435,6 @@ uninstall_service() {
     
     rm -rf "$INSTALL_DIR"
 
-    # === 快捷命令删除逻辑 ===
     if [ -f "$SHORTCUT_PATH" ]; then
         rm -f "$SHORTCUT_PATH"
         white "快捷命令已移除: $SHORTCUT_PATH"
@@ -494,14 +487,12 @@ view_subscription() {
     fi
 }
 
-# === 优化版配置修改菜单 (修复变量加载问题) ===
 edit_variables() {
     check_root
     [ ! -f "$CONFIG_FILE_ENV" ] && red "配置文件不存在，请先安装服务" && sleep 2 && return
     
     cp "$CONFIG_FILE_ENV" "$CONFIG_FILE_ENV.bak"
 
-    # --- 内部辅助函数 ---
     update_config_value() {
         local key=$1
         local val=$2
@@ -513,7 +504,6 @@ edit_variables() {
         [ -z "$1" ] && echo "$(yellow "未设置")" || echo "$(green "$1")"
     }
 
-    # 修复：使用 source 确保变量加载到当前 Shell 作用域，解决显示未设置的问题
     reload_config() {
         if [ -f "$CONFIG_FILE_ENV" ]; then
             local TMP_ENV=$(mktemp)
@@ -525,7 +515,6 @@ edit_variables() {
         fi
     }
 
-    # 通用保存并重启函数
     save_and_restart() {
         reload_config
         if [ -z "$ARGO_DOMAIN" ] || [ -z "$ARGO_AUTH" ]; then
@@ -556,7 +545,6 @@ edit_variables() {
         return 0
     }
 
-    # --- 子菜单：基础设置 ---
     submenu_basic() {
         while true; do
             printf "\033c"; reload_config
@@ -569,7 +557,7 @@ edit_variables() {
             echo -e "${GREEN}0.${RESET} 返回上一页"
             read -rp "$(yellow "请选择: ")" sub_choice
             case $sub_choice in
-                1) read -p "输入新 UUID: " v; [ -z "$v" ] && v=$(generate_uuid); update_config_value "UUID" "$v" ;;
+                1) read -p "输入新 UUID (留空生成): " v; [ -z "$v" ] && v=$(generate_uuid); update_config_value "UUID" "$v" ;;
                 2) read -p "输入新 名称前缀: " v; update_config_value "NAME" "$v" ;;
                 3) read -p "输入新 HTTP端口: " v; validate_port "$v" "PORT" && update_config_value "PORT" "$v" ;;
                 [sS]) if save_and_restart; then return 10; fi ;;
@@ -579,7 +567,6 @@ edit_variables() {
         done
     }
 
-    # --- 子菜单：Argo 设置 ---
     submenu_argo() {
         while true; do
             printf "\033c"; reload_config
@@ -602,7 +589,6 @@ edit_variables() {
         done
     }
 
-    # --- 子菜单：节点网络 ---
     submenu_network() {
         while true; do
             printf "\033c"; reload_config
@@ -625,7 +611,6 @@ edit_variables() {
         done
     }
 
-    # --- 子菜单：哪吒监控 ---
     submenu_nezha() {
         while true; do
             printf "\033c"; reload_config
@@ -648,7 +633,6 @@ edit_variables() {
         done
     }
 
-    # --- 子菜单：高级设置 ---
     submenu_advanced() {
         while true; do
             printf "\033c"; reload_config
@@ -675,7 +659,6 @@ edit_variables() {
         done
     }
 
-    # --- 主循环 ---
     while true; do
         printf "\033c"
         echo -e "${CYAN}========== 配置分类菜单 ==========${RESET}"
@@ -685,21 +668,18 @@ edit_variables() {
         echo -e "${GREEN}4.${RESET} 哪吒监控 $(yellow "(服务器, 密钥)")"
         echo -e "${GREEN}5.${RESET} 高级选项 $(yellow "(保活, 密码, 其他参数)")"
         echo -e "${CYAN}---------------------------------${RESET}"
-        # 删除主菜单的 S 选项，0 改为 返回上一页
         echo -e "${GREEN}0.${RESET} 返回上一页"
         echo -e "${CYAN}=================================${RESET}"
         
         read -rp "$(yellow "请输入选项: ")" choice
 
         case $choice in
-            # 如果子菜单返回 10，说明执行了保存并重启，直接跳出所有循环
             1) submenu_basic; [ $? -eq 10 ] && break ;;
             2) submenu_argo; [ $? -eq 10 ] && break ;;
             3) submenu_network; [ $? -eq 10 ] && break ;;
             4) submenu_nezha; [ $? -eq 10 ] && break ;;
             5) submenu_advanced; [ $? -eq 10 ] && break ;;
             0) 
-                # 退出时还原备份
                 mv "$CONFIG_FILE_ENV.bak" "$CONFIG_FILE_ENV"
                 break
                 ;;
